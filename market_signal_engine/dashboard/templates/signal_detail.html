@@ -1,31 +1,96 @@
 {% extends "base.html" %}
-{% block title %}MSE — Signal #{{ signal.id }}{% endblock %}
+{% block title %}MSE — {{ signal.action.label }} {{ signal.asset }}{% endblock %}
 {% block body_class %}page-signal-detail{% endblock %}
 
 {% block content %}
 <a href="/" class="back-link">&#x2190; Back to Dashboard</a>
 
-<!-- Signal hero -->
+<!-- Action hero -->
 <div class="signal-hero">
-    <div class="hero-direction {{ signal.direction }}">{{ signal.direction }}</div>
+    <div class="hero-action-badge {{ signal.action.css }}">
+        <span style="font-size:28px;">{{ signal.action.emoji }}</span>
+        <span>{{ signal.action.label }}</span>
+    </div>
     <div>
         <div class="hero-asset">{{ signal.asset }}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
             Signal #{{ signal.id }} &middot; {{ signal.timestamp | ago }}
         </div>
     </div>
     <div class="hero-meta">
         <div class="hero-meta-item">Confidence <span>{{ "%.1f"|format(signal.confidence * 100) }}%</span></div>
-        <div class="hero-meta-item">Dispersion <span>{{ "%.3f"|format(signal.consensus_dispersion) }}</span></div>
-        <div class="hero-meta-item">Meta-Agent <span>{{ signal.meta_agent_version }}</span></div>
-        <div class="hero-meta-item">Timestamp <span>{{ signal.timestamp | ts_fmt }}</span></div>
+        <div class="hero-meta-item">Risk <span class="{{ signal.risk.css }}" style="margin-left:4px;">{{ signal.risk.level }}</span></div>
+        <div class="hero-meta-item">Engine <span>{{ signal.meta_agent_version }}</span></div>
     </div>
 </div>
 
-<div class="widget-grid" style="margin-bottom:28px;">
+<!-- Price level cards -->
+{% if signal.price %}
+<div class="price-levels-row">
+    <div class="price-level-card">
+        <div class="plc-label">Entry Price</div>
+        <div class="plc-value">${{ "%.2f"|format(signal.entry_price or signal.price) }}</div>
+        <div class="plc-sub">Current market price</div>
+    </div>
+    <div class="price-level-card stop">
+        <div class="plc-label">&#x25BC; Stop Loss</div>
+        <div class="plc-value">${{ "%.2f"|format(signal.stop_loss or 0) }}</div>
+        <div class="plc-sub">
+            {% if signal.direction == "bullish" %}
+            {{ "%.1f"|format(((signal.stop_loss or 0) / signal.price - 1) * 100) }}% below entry
+            {% else %}
+            {{ "%.1f"|format(((signal.stop_loss or 0) / signal.price - 1) * 100) }}% above entry
+            {% endif %}
+        </div>
+    </div>
+    <div class="price-level-card target">
+        <div class="plc-label">&#x25B2; Take Profit</div>
+        <div class="plc-value">${{ "%.2f"|format(signal.take_profit or 0) }}</div>
+        <div class="plc-sub">
+            {% if signal.direction == "bullish" %}
+            +{{ "%.1f"|format(((signal.take_profit or 0) / signal.price - 1) * 100) }}% from entry
+            {% else %}
+            {{ "%.1f"|format(((signal.take_profit or 0) / signal.price - 1) * 100) }}% from entry
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Risk/Reward summary -->
+<div class="rr-summary">
+    <div class="rr-item">
+        <span class="rr-label">Risk/Reward</span>
+        <span class="rr-value">
+            {% if signal.direction == "neutral" %}
+            N/A
+            {% elif signal.direction == "bullish" and signal.price and signal.stop_loss and signal.take_profit %}
+            1:{{ "%.1f"|format((signal.take_profit - signal.price) / (signal.price - signal.stop_loss)) if signal.price > signal.stop_loss else "N/A" }}
+            {% elif signal.direction == "bearish" and signal.price and signal.stop_loss and signal.take_profit %}
+            1:{{ "%.1f"|format((signal.price - signal.take_profit) / (signal.stop_loss - signal.price)) if signal.stop_loss > signal.price else "N/A" }}
+            {% else %}
+            —
+            {% endif %}
+        </span>
+    </div>
+    <div class="rr-item">
+        <span class="rr-label">Dispersion</span>
+        <span class="rr-value {{ signal.risk.css }}">{{ "%.1f"|format((signal.consensus_dispersion or 0) * 100) }}%</span>
+    </div>
+    <div class="rr-item">
+        <span class="rr-label">Recommendation</span>
+        <span class="rr-value">{{ signal.action.desc }}</span>
+    </div>
+    <div class="rr-item">
+        <span class="rr-label">Risk Assessment</span>
+        <span class="rr-value">{{ signal.risk.desc }}</span>
+    </div>
+</div>
+
+<div class="widget-grid">
     <!-- Consensus bar widget -->
     <div class="widget">
-        <div class="widget-header">Agent Consensus</div>
+        <div class="widget-header">Agent Consensus ({{ bullish_count + bearish_count + neutral_count }} votes)</div>
         <div class="widget-body">
             <div class="consensus-bar-wrap">
                 {% if bullish_pct > 0 %}
@@ -62,38 +127,39 @@
         <div class="dispersion-row">
             <span class="dispersion-label">Dispersion Penalty</span>
             <div class="dispersion-gauge">
-                <div class="dispersion-fill" style="width:{{ (signal.consensus_dispersion * 100) | round }}%;"></div>
+                <div class="dispersion-fill" style="width:{{ ((signal.consensus_dispersion or 0) * 100) | round }}%;"></div>
             </div>
-            <span class="dispersion-value" style="color:{% if signal.consensus_dispersion < 0.2 %}var(--signal-green){% elif signal.consensus_dispersion < 0.35 %}var(--amber){% else %}var(--alert-red){% endif %};">
-                {{ "%.1f"|format(signal.consensus_dispersion * 100) }}%
+            <span class="dispersion-value" style="color:{% if (signal.consensus_dispersion or 0) < 0.2 %}var(--signal-green){% elif (signal.consensus_dispersion or 0) < 0.35 %}var(--amber){% else %}var(--alert-red){% endif %};">
+                {{ "%.1f"|format((signal.consensus_dispersion or 0) * 100) }}%
             </span>
         </div>
     </div>
 
-    <!-- Summary widget -->
+    <!-- What this means widget -->
     <div class="widget">
-        <div class="widget-header">Consensus Summary</div>
+        <div class="widget-header">What This Means</div>
         <div class="widget-body">
             <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
-                <strong style="color:var(--text-primary);">{{ bullish_count }}/26 agents</strong> voted <span style="color:var(--bullish);">bullish</span>
-                on <strong style="color:var(--text-primary);">{{ signal.asset }}</strong>.
-                {% if bullish_count > bearish_count %}
-                The consensus leans <span style="color:var(--bullish);">bullish</span> with
-                {% elif bearish_count > bullish_count %}
-                The consensus leans <span style="color:var(--bearish);">bearish</span> with
-                {% else %}
-                The agent network is <span style="color:var(--neutral);">divided</span> with
+                <strong style="color:var(--text-primary);">{{ signal.action.label }}</strong> on
+                <strong style="color:var(--text-primary);">{{ signal.asset }}</strong>
+                {% if signal.price %}
+                at <strong style="color:var(--text-primary);">${{ "%.2f"|format(signal.price) }}</strong>
                 {% endif %}
-                {{ "%.1f"|format(signal.confidence * 100) }}% confidence.
+                with {{ "%.0f"|format(signal.confidence * 100) }}% confidence.
             </p>
             <p style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
-                Dispersion of {{ "%.1f"|format(signal.consensus_dispersion * 100) }}%
-                {% if signal.consensus_dispersion > 0.3 %}
-                indicates significant disagreement among agents. Confidence has been penalized.
-                {% elif signal.consensus_dispersion > 0.15 %}
-                indicates moderate divergence. A minor confidence penalty was applied.
+                {{ bullish_count }} of {{ bullish_count + bearish_count + neutral_count }} agents voted bullish.
+                {{ signal.risk.desc | lower }}.
+                {% if signal.action.css == "bullish" %}
+                Consider entering near <strong style="color:var(--text-primary);">${{ "%.2f"|format(signal.entry_price or signal.price or 0) }}</strong>,
+                setting a stop at <strong style="color:var(--alert-red);">${{ "%.2f"|format(signal.stop_loss or 0) }}</strong>,
+                with a target of <strong style="color:var(--signal-green);">${{ "%.2f"|format(signal.take_profit or 0) }}</strong>.
+                {% elif signal.action.css == "bearish" %}
+                Consider selling near <strong style="color:var(--text-primary);">${{ "%.2f"|format(signal.entry_price or signal.price or 0) }}</strong>,
+                setting a stop at <strong style="color:var(--alert-red);">${{ "%.2f"|format(signal.stop_loss or 0) }}</strong>,
+                with a target of <strong style="color:var(--signal-green);">${{ "%.2f"|format(signal.take_profit or 0) }}</strong>.
                 {% else %}
-                indicates strong agreement across the agent network.
+                Wait for a clearer signal before taking any position.
                 {% endif %}
             </p>
         </div>
@@ -101,7 +167,7 @@
 </div>
 
 <!-- Per-agent votes table -->
-<div class="widget" style="margin-bottom:28px;">
+<div class="widget">
     <div class="widget-header">Per-Agent Vote Breakdown</div>
     <div class="votes-table-wrap">
         <table class="votes-table">

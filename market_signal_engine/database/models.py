@@ -42,6 +42,10 @@ class Signal(Base):
     meta_agent_version: Mapped[str] = mapped_column(String(20), default="0.2.1")
     agent_weights: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     consensus_dispersion: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stop_loss: Mapped[float | None] = mapped_column(Float, nullable=True)
+    take_profit: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active")  # pending / active / resolved / expired
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

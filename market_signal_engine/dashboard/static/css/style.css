@@ -856,6 +856,296 @@ body {
 
 .back-link:hover { color: var(--plasma); }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTIONABLE SIGNAL CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.signal-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.signal-action-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.signal-action-card:hover {
+    border-color: var(--border-active);
+    background: var(--bg-elevated);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(0,0,0,0.35);
+}
+
+.signal-action-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    opacity: 0.7;
+}
+
+.signal-action-card.bullish::before {
+    background: linear-gradient(90deg, transparent, var(--signal-green), transparent);
+}
+
+.signal-action-card.bearish::before {
+    background: linear-gradient(90deg, transparent, var(--alert-red), transparent);
+}
+
+.signal-action-card.hold::before {
+    background: linear-gradient(90deg, transparent, var(--text-muted), transparent);
+}
+
+.sac-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.sac-asset {
+    font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+    color: var(--text-primary);
+}
+
+.sac-action-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 5px 14px; border-radius: var(--radius-sm);
+    white-space: nowrap;
+}
+
+.sac-action-badge.bullish {
+    color: #003322; background: var(--signal-green);
+    box-shadow: 0 0 16px rgba(0,255,136,0.25);
+}
+
+.sac-action-badge.bearish {
+    color: #330011; background: var(--alert-red);
+    box-shadow: 0 0 16px rgba(255,59,92,0.25);
+}
+
+.sac-action-badge.hold {
+    color: var(--bg-deep); background: var(--text-muted);
+}
+
+.sac-body { }
+
+.sac-metrics {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-bottom: 14px;
+}
+
+.sac-metric {
+    display: flex; flex-direction: column; gap: 2px;
+}
+
+.sac-m-label {
+    font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); font-family: var(--font-mono);
+}
+
+.sac-m-value {
+    font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sac-m-value.mono { }
+
+.sac-m-value.bullish { color: var(--signal-green); }
+.sac-m-value.bearish { color: var(--alert-red); }
+.sac-m-value.amber { color: var(--amber); }
+.sac-m-value.hold { color: var(--text-muted); }
+
+.sac-levels {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    margin-bottom: 14px;
+    padding: 12px;
+    background: var(--bg-deep);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+}
+
+.sac-level {
+    text-align: center;
+}
+
+.sac-l-label {
+    display: block; font-size: 8px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim);
+    font-family: var(--font-mono); margin-bottom: 3px;
+}
+
+.sac-l-val {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sac-level.stop .sac-l-val { color: var(--alert-red); }
+.sac-level.target .sac-l-val { color: var(--signal-green); }
+
+.sac-confidence-bar {
+    height: 4px; background: var(--bg-deep);
+    border-radius: 2px; overflow: hidden; margin-bottom: 10px;
+}
+
+.sac-conf-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 0.5s ease;
+}
+
+.sac-conf-fill.bullish { background: linear-gradient(90deg, var(--signal-green-dim), var(--signal-green)); }
+.sac-conf-fill.bearish { background: linear-gradient(90deg, var(--alert-red-dim), var(--alert-red)); }
+.sac-conf-fill.hold { background: var(--text-muted); }
+
+.sac-desc {
+    font-size: 11px; color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* ── Signal list row (widget) ─────────────────────────────────────────── */
+
+.signal-list-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    text-decoration: none; color: inherit;
+    transition: background 0.15s ease;
+}
+
+.signal-list-row:hover { background: var(--bg-elevated); }
+
+.signal-list-asset {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--text-primary); flex: 1;
+}
+
+.signal-list-conf {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-secondary); width: 32px; text-align: right;
+}
+
+.signal-list-risk {
+    font-family: var(--font-mono); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 1px;
+    width: 72px; text-align: center;
+    padding: 2px 0; border-radius: 3px;
+}
+
+.signal-list-risk.bullish { color: var(--signal-green); background: rgba(0,255,136,0.06); }
+.signal-list-risk.bearish { color: var(--alert-red); background: rgba(255,59,92,0.06); }
+.signal-list-risk.amber { color: var(--amber); background: rgba(255,182,39,0.06); }
+.signal-list-risk.neutral { color: var(--text-muted); }
+
+.signal-list-time {
+    font-size: 10px; color: var(--text-dim);
+    font-family: var(--font-mono); width: 54px; text-align: right;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIGNAL DETAIL — PRICE LEVELS & ACTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hero-action-badge {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 2px;
+    padding: 16px 22px; border-radius: var(--radius-md);
+    min-width: 120px; text-align: center;
+}
+
+.hero-action-badge.bullish {
+    color: #003322; background: var(--signal-green);
+    box-shadow: 0 0 24px rgba(0,255,136,0.3);
+}
+
+.hero-action-badge.bearish {
+    color: #330011; background: var(--alert-red);
+    box-shadow: 0 0 24px rgba(255,59,92,0.3);
+}
+
+.hero-action-badge.hold {
+    color: var(--bg-deep); background: var(--text-muted);
+}
+
+.price-levels-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-bottom: 28px;
+}
+
+.price-level-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px; text-align: center;
+    transition: all 0.2s ease;
+}
+
+.price-level-card:hover {
+    border-color: var(--border-mid);
+    background: var(--bg-elevated);
+}
+
+.price-level-card.stop { border-color: rgba(255,59,92,0.2); }
+.price-level-card.stop:hover { border-color: rgba(255,59,92,0.4); }
+.price-level-card.target { border-color: rgba(0,255,136,0.2); }
+.price-level-card.target:hover { border-color: rgba(0,255,136,0.4); }
+
+.plc-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); font-family: var(--font-mono);
+    margin-bottom: 8px;
+}
+
+.plc-value {
+    font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 4px;
+}
+
+.price-level-card.stop .plc-value { color: var(--alert-red); }
+.price-level-card.target .plc-value { color: var(--signal-green); }
+
+.plc-sub {
+    font-size: 10px; color: var(--text-dim);
+}
+
+.rr-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 28px;
+}
+
+.rr-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px; text-align: center;
+}
+
+.rr-label {
+    display: block; font-size: 8px; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--text-dim);
+    font-family: var(--font-mono); margin-bottom: 6px;
+}
+
+.rr-value {
+    font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+    color: var(--text-primary);
+}
+
+.rr-value.bullish { color: var(--signal-green); }
+.rr-value.bearish { color: var(--alert-red); }
+.rr-value.amber { color: var(--amber); }
+.rr-value.neutral { color: var(--text-muted); }
+
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -1063,6 +1353,35 @@ body {
     .sidebar-footer { padding: 12px 10px; }
 
     .back-link { margin-bottom: 16px; }
+
+    /* Signal cards */
+    .signal-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .signal-action-card { padding: 16px; }
+
+    .sac-asset { font-size: 16px; }
+
+    .sac-metrics { gap: 8px; }
+
+    .sac-m-value { font-size: 13px; }
+
+    .sac-levels { gap: 6px; padding: 10px; }
+
+    .sac-l-val { font-size: 11px; }
+
+    .signal-list-row {
+        padding: 10px 14px; gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .price-levels-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .price-level-card { padding: 14px 10px; }
+    .plc-value { font-size: 16px; }
+    .rr-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .hero-action-badge { padding: 12px 16px; font-size: 12px; min-width: 100px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1122,4 +1441,10 @@ body {
     .agent-metric .m-value { font-size: 12px; }
 
     .tier-header { font-size: 10px; }
+
+    .price-levels-row { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .price-level-card { padding: 10px 6px; }
+    .plc-value { font-size: 14px; }
+    .plc-label { font-size: 7px; }
+    .rr-summary { grid-template-columns: 1fr; }
 }

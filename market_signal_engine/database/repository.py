@@ -48,6 +48,10 @@ def create_signal(
     agent_weights: dict | None = None,
     consensus_dispersion: float | None = None,
     meta_agent_version: str = "0.2.1",
+    price: float | None = None,
+    entry_price: float | None = None,
+    stop_loss: float | None = None,
+    take_profit: float | None = None,
 ) -> Signal:
     s = _session()
     try:
@@ -58,6 +62,10 @@ def create_signal(
             agent_weights=agent_weights,
             consensus_dispersion=consensus_dispersion,
             meta_agent_version=meta_agent_version,
+            price=price,
+            entry_price=entry_price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
         )
         s.add(signal)
         s.commit()
@@ -238,5 +246,94 @@ def get_accuracy_stats() -> dict:
             "avg_accuracy": round(result.avg_accuracy or 0, 3),
             "total_agents": result.total,
         }
+    finally:
+        s.close()
+
+
+def get_signals_today_count() -> int:
+    s = _session()
+    try:
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        return s.execute(
+            select(func.count(Signal.id)).where(Signal.created_at >= today)
+        ).scalar_one()
+    finally:
+        s.close()
+
+
+def get_top_agent() -> AgentPerformance | None:
+    s = _session()
+    try:
+        return s.execute(
+            select(AgentPerformance).order_by(AgentPerformance.accuracy_ema.desc()).limit(1)
+        ).scalar_one_or_none()
+    finally:
+        s.close()
+
+
+def get_active_agent_count() -> int:
+    """Agents that have made at least one prediction."""
+    s = _session()
+    try:
+        return s.execute(
+            select(func.count(AgentPerformance.id)).where(AgentPerformance.total_predictions > 0)
+        ).scalar_one()
+    finally:
+        s.close()
+
+
+# ── Seed data ────────────────────────────────────────────────────────────────
+
+AGENT_SEED_DATA = [
+    {"agent_name": "Technical Analysis",   "agent_id": 1,  "tier": 1, "category": "Technical"},
+    {"agent_name": "Sentiment Analysis",   "agent_id": 2,  "tier": 1, "category": "Sentiment"},
+    {"agent_name": "On-Chain Analysis",    "agent_id": 3,  "tier": 1, "category": "On-Chain"},
+    {"agent_name": "Macro Analysis",       "agent_id": 4,  "tier": 1, "category": "Macro"},
+    {"agent_name": "Fundamental Analysis",  "agent_id": 5,  "tier": 1, "category": "Fundamental"},
+    {"agent_name": "Pattern Recognition",  "agent_id": 6,  "tier": 1, "category": "Technical"},
+    {"agent_name": "Volume Profile",       "agent_id": 7,  "tier": 1, "category": "Technical"},
+    {"agent_name": "Market Structure",     "agent_id": 8,  "tier": 1, "category": "Technical"},
+    {"agent_name": "Momentum",             "agent_id": 9,  "tier": 1, "category": "Momentum"},
+    {"agent_name": "Volatility",           "agent_id": 10, "tier": 1, "category": "Volatility"},
+    {"agent_name": "Fear & Greed",         "agent_id": 11, "tier": 1, "category": "Sentiment"},
+    {"agent_name": "Whale Tracking",       "agent_id": 12, "tier": 1, "category": "On-Chain"},
+    {"agent_name": "Meta-Agent",           "agent_id": 13, "tier": 1, "category": "Meta"},
+    {"agent_name": "Backtesting",          "agent_id": 14, "tier": 1, "category": "Validation"},
+    {"agent_name": "Calibration",          "agent_id": 15, "tier": 1, "category": "Validation"},
+    {"agent_name": "Correlation",          "agent_id": 16, "tier": 2, "category": "Cross-Market"},
+    {"agent_name": "Intermarket",          "agent_id": 17, "tier": 2, "category": "Cross-Market"},
+    {"agent_name": "DeFi",                 "agent_id": 18, "tier": 2, "category": "DeFi"},
+    {"agent_name": "L1/L2 Analysis",       "agent_id": 19, "tier": 2, "category": "Chain"},
+    {"agent_name": "Economic Calendar",    "agent_id": 20, "tier": 2, "category": "Macro"},
+    {"agent_name": "Social Media",         "agent_id": 21, "tier": 2, "category": "Sentiment"},
+    {"agent_name": "Alert/Recommendation", "agent_id": 22, "tier": 2, "category": "Signal"},
+    {"agent_name": "Sector Rotation",      "agent_id": 23, "tier": 3, "category": "Cross-Market"},
+    {"agent_name": "Statistical Arbitrage","agent_id": 24, "tier": 3, "category": "Quant"},
+    {"agent_name": "Geopolitical",         "agent_id": 25, "tier": 3, "category": "Macro"},
+    {"agent_name": "NFT/Gaming",           "agent_id": 26, "tier": 3, "category": "Alternative"},
+]
+
+
+def seed_agent_performance() -> None:
+    """Ensure all 26 agents have a row in agent_performance. Safe to call repeatedly."""
+    s = _session()
+    try:
+        for entry in AGENT_SEED_DATA:
+            existing = s.execute(
+                select(AgentPerformance).where(AgentPerformance.agent_id == entry["agent_id"])
+            ).scalar_one_or_none()
+            if not existing:
+                perf = AgentPerformance(
+                    agent_name=entry["agent_name"],
+                    agent_id=entry["agent_id"],
+                    tier=entry["tier"],
+                    category=entry["category"],
+                    accuracy_ema=0.5,
+                    total_predictions=0,
+                    correct_predictions=0,
+                    weight=0.0,
+                )
+                s.add(perf)
+        s.commit()
     finally:
         s.close()

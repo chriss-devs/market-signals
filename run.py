@@ -147,12 +147,6 @@ app.state.templates = templates
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(dashboard_router)
 
-
-@app.get("/health")
-def health():
-    return {"status": "ok", "version": "0.3.0"}
-
-
 def main() -> None:
     import uvicorn
     uvicorn.run("run:app", host="0.0.0.0", port=8000, reload=True)

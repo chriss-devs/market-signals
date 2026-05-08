@@ -144,21 +144,110 @@ class PipelineScheduler:
             pass
 
     async def _run_analysis(self) -> None:
-        """Run agent analysis cycle for all tracked assets."""
+        """Run agent analysis cycle for all tracked assets and persist results."""
         logger.debug("Running analysis cycle...")
-        from market_signal_engine.jobs.orchestrator import AgentOrchestrator
         from market_signal_engine.collectors.yfinance_collector import YFinanceCollector
+        from market_signal_engine.jobs.orchestrator import AgentOrchestrator
+        from market_signal_engine.database.repository import (
+            create_prediction,
+            create_signal,
+            get_or_create_asset,
+            seed_agent_performance,
+            upsert_agent_performance,
+        )
+
+        # Ensure all 26 agents have performance rows
+        seed_agent_performance()
 
         orchestrator = AgentOrchestrator()
         collector = YFinanceCollector()
 
         for sym in self._assets[:6]:
             try:
-                results = [collector.collect(sym)]
-                summary = orchestrator.run_cycle(sym, results)
+                result = collector.collect(sym)
+                summary = orchestrator.run_cycle(sym, [result])
+
+                if summary.get("error"):
+                    logger.warning(f"Analysis skipped for {sym}: {summary['error']}")
+                    continue
+
+                # Determine asset type
+                asset_type = "stock" if sym in ("AAPL", "NVDA", "TSLA", "MSFT", "SPY") else "crypto"
+                asset = get_or_create_asset(sym, asset_type)
+
+                # Extract price from collector result
+                price = None
+                if result.is_ok and result.data:
+                    price = result.data.get("price")
+
+                # Compute price levels
+                direction = summary["consensus"]["direction"]
+                entry_price = price
+                stop_loss = None
+                take_profit = None
+
+                if price and direction == "bullish":
+                    stop_loss = round(price * 0.95, 2)
+                    take_profit = round(price * 1.10, 2)
+                elif price and direction == "bearish":
+                    stop_loss = round(price * 1.05, 2)
+                    take_profit = round(price * 0.90, 2)
+
+                # Persist signal
+                signal = create_signal(
+                    asset_id=asset.id,
+                    direction=direction,
+                    confidence=summary["consensus"]["confidence"],
+                    agent_weights=summary["consensus"]["agent_weights"],
+                    consensus_dispersion=summary["consensus"]["dispersion"],
+                    price=price,
+                    entry_price=entry_price,
+                    stop_loss=stop_loss,
+                    take_profit=take_profit,
+                )
+
+                # Persist each agent prediction
+                for r in summary.get("agent_results", []):
+                    create_prediction(
+                        signal_id=signal.id,
+                        agent_name=r["agent_name"],
+                        agent_id=r["agent_id"],
+                        tier=r.get("tier", 1),
+                        category=r.get("category", "Unknown"),
+                        vote=r["direction"],
+                        confidence=r["confidence"],
+                        reasoning=r.get("reasoning", ""),
+                    )
+
+                # Update agent performance records
+                for r in summary.get("agent_results", []):
+                    try:
+                        perf = orchestrator._registry.get(r["agent_name"])
+                        if perf:
+                            p = perf.get_performance()
+                            upsert_agent_performance(
+                                agent_name=p.agent_name,
+                                agent_id=p.agent_id,
+                                tier=r.get("tier", 1),
+                                category=r.get("category", "Unknown"),
+                                accuracy_ema=p.accuracy_ema,
+                                total_predictions=p.total_predictions,
+                                correct_predictions=p.correct_predictions,
+                                weight=p.weight,
+                            )
+                    except Exception:
+                        pass
+
+                logger.info(
+                    f"Signal #{signal.id}: {direction.upper()} {sym} "
+                    f"({summary['consensus']['confidence']*100:.0f}%, "
+                    f"{summary['predictions']} agents, "
+                    f"disp={summary['consensus']['dispersion']:.2f})"
+                )
 
                 if summary.get("should_alert"):
                     self._push_alert(summary)
+
             except Exception as e:
                 logger.error(f"Analysis failed for {sym}: {e}")
 

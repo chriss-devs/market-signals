@@ -69,6 +69,8 @@ class AgentOrchestrator:
                 agent_results.append({
                     "agent_name": pred.agent_name,
                     "agent_id": pred.agent_id,
+                    "tier": agent.tier,
+                    "category": agent.category,
                     "direction": pred.direction,
                     "confidence": pred.confidence,
                     "reasoning": pred.reasoning[:120],
