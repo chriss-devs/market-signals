@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}MSE — Agents{% endblock %}
+{% block body_class %}page-agents{% endblock %}
+
+{% block head %}
+<style>
+    .tier-summary {
+        display: flex; gap: 16px; margin-bottom: 28px;
+    }
+    .tier-summary-card {
+        flex: 1; background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md); padding: 16px 20px;
+        transition: all 0.2s ease;
+    }
+    .tier-summary-card:hover { border-color: var(--border-mid); background: var(--bg-elevated); }
+    .tier-summary-card .ts-tier {
+        font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 2px;
+        margin-bottom: 6px;
+    }
+    .tier-summary-card .ts-count {
+        font-family: var(--font-mono); font-size: 26px; font-weight: 700;
+    }
+    .tier-summary-card .ts-sub {
+        font-size: 10px; color: var(--text-dim); margin-top: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">&#x2190; Back to Dashboard</a>
+
+<header class="page-header">
+    <div>
+        <h1 class="page-title">Agent <span class="accent">Network</span></h1>
+        <p class="page-subtitle">26 specialized AI agents &middot; Weighted consensus &middot; Self-improving</p>
+    </div>
+    <div class="header-stats">
+        <div class="header-stat">
+            <div class="value plasma">{{ stats.active_agents }}</div>
+            <div class="label">Active</div>
+        </div>
+        <div class="header-stat">
+            <div class="value green">{{ "%.1f"|format(stats.avg_accuracy * 100) }}%</div>
+            <div class="label">Avg Accuracy</div>
+        </div>
+    </div>
+</header>
+
+<!-- Tier summary cards -->
+<div class="tier-summary">
+    <div class="tier-summary-card">
+        <div class="ts-tier" style="color:var(--plasma);">Tier 1 &mdash; Core Analysis</div>
+        <div class="ts-count" style="color:var(--plasma);">{{ tier1|length }}</div>
+        <div class="ts-sub">
+            {{ tier1|selectattr("status","equalto","active")|list|length }} active &middot;
+            {{ "%.1f"|format((tier1|sum(attribute="accuracy") / tier1|length) * 100) if tier1 else 0 }}% avg acc
+        </div>
+    </div>
+    <div class="tier-summary-card">
+        <div class="ts-tier" style="color:var(--void-purple);">Tier 2 &mdash; High Value</div>
+        <div class="ts-count" style="color:var(--void-purple);">{{ tier2|length }}</div>
+        <div class="ts-sub">
+            {{ tier2|selectattr("status","equalto","active")|list|length }} active &middot;
+            {{ "%.1f"|format((tier2|sum(attribute="accuracy") / tier2|length) * 100) if tier2 else 0 }}% avg acc
+        </div>
+    </div>
+    <div class="tier-summary-card">
+        <div class="ts-tier" style="color:var(--amber);">Tier 3 &mdash; Specialized</div>
+        <div class="ts-count" style="color:var(--amber);">{{ tier3|length }}</div>
+        <div class="ts-sub">
+            {{ tier3|selectattr("status","equalto","active")|list|length }} active &middot;
+            {{ "%.1f"|format((tier3|sum(attribute="accuracy") / tier3|length) * 100) if tier3 else 0 }}% avg acc
+        </div>
+    </div>
+</div>
+
+<!-- Tier 1 -->
+<div class="tier-section">
+    <div class="tier-header">
+        <span class="tier-dot t1"></span> Tier 1 &mdash; Core Analysis
+        <span class="tier-count">{{ tier1|length }} agents</span>
+    </div>
+    <div class="agents-grid">
+        {% for agent in tier1 %}
+        <div class="agent-card" data-agent-id="{{ agent.id }}">
+            <div class="agent-card-header">
+                <span class="agent-status {{ agent.status }}"></span>
+                <span class="agent-name">#{{ agent.id }} {{ agent.name }}</span>
+                <span class="agent-category">{{ agent.category }}</span>
+            </div>
+            <div class="agent-metrics">
+                <div class="agent-metric">
+                    <div class="m-label">Accuracy</div>
+                    <div class="m-value {% if agent.accuracy >= 0.7 %}high{% elif agent.accuracy >= 0.6 %}mid{% else %}low{% endif %}">
+                        {{ "%.1f"|format(agent.accuracy * 100) }}%
+                    </div>
+                </div>
+                <div class="agent-metric">
+                    <div class="m-label">Predictions</div>
+                    <div class="m-value mid">{{ agent.predictions_count }}</div>
+                </div>
+                <div class="agent-metric">
+                    <div class="m-label">Last Seen</div>
+                    <div class="m-value mid" style="font-size:11px;">{{ agent.last_prediction | ago }}</div>
+                </div>
+            </div>
+            <div class="weight-bar-wrap">
+                <span class="weight-bar-label">Weight</span>
+                <div class="weight-bar">
+                    <div class="weight-bar-fill" style="width:{{ (agent.weight * 1000) | round }}%;"></div>
+                </div>
+                <span class="weight-bar-value">{{ "%.4f"|format(agent.weight) }}</span>
+            </div>
+            <div class="agent-signal">
+                <span class="s-label">Signal</span>
+                <span class="signal-pill {{ agent.current_signal }}">{{ agent.current_signal }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tier 2 -->
+<div class="tier-section">
+    <div class="tier-header">
+        <span class="tier-dot t2"></span> Tier 2 &mdash; High Value
+        <span class="tier-count">{{ tier2|length }} agents</span>
+    </div>
+    <div class="agents-grid">
+        {% for agent in tier2 %}
+        <div class="agent-card" data-agent-id="{{ agent.id }}">
+            <div class="agent-card-header">
+                <span class="agent-status {{ agent.status }}"></span>
+                <span class="agent-name">#{{ agent.id }} {{ agent.name }}</span>
+                <span class="agent-category">{{ agent.category }}</span>
+            </div>
+            <div class="agent-metrics">
+                <div class="agent-metric">
+                    <div class="m-label">Accuracy</div>
+                    <div class="m-value {% if agent.accuracy >= 0.7 %}high{% elif agent.accuracy >= 0.6 %}mid{% else %}low{% endif %}">
+                        {{ "%.1f"|format(agent.accuracy * 100) }}%
+                    </div>
+                </div>
+                <div class="agent-metric">
+                    <div class="m-label">Predictions</div>
+                    <div class="m-value mid">{{ agent.predictions_count }}</div>
+                </div>
+                <div class="agent-metric">
+                    <div class="m-label">Last Seen</div>
+                    <div class="m-value mid" style="font-size:11px;">{{ agent.last_prediction | ago }}</div>
+                </div>
+            </div>
+            <div class="weight-bar-wrap">
+                <span class="weight-bar-label">Weight</span>
+                <div class="weight-bar">
+                    <div class="weight-bar-fill" style="width:{{ (agent.weight * 1000) | round }}%;"></div>
+                </div>
+                <span class="weight-bar-value">{{ "%.4f"|format(agent.weight) }}</span>
+            </div>
+            <div class="agent-signal">
+                <span class="s-label">Signal</span>
+                <span class="signal-pill {{ agent.current_signal }}">{{ agent.current_signal }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tier 3 -->
+<div class="tier-section">
+    <div class="tier-header">
+        <span class="tier-dot t3"></span> Tier 3 &mdash; Specialized
+        <span class="tier-count">{{ tier3|length }} agents</span>
+    </div>
+    <div class="agents-grid">
+        {% for agent in tier3 %}
+        <div class="agent-card" data-agent-id="{{ agent.id }}">
+            <div class="agent-card-header">
+                <span class="agent-status {{ agent.status }}"></span>
+                <span class="agent-name">#{{ agent.id }} {{ agent.name }}</span>
+                <span class="agent-category">{{ agent.category }}</span>
+            </div>
+            <div class="agent-metrics">
+                <div class="agent-metric">
+                    <div class="m-label">Accuracy</div>
+                    <div class="m-value {% if agent.accuracy >= 0.7 %}high{% elif agent.accuracy >= 0.6 %}mid{% else %}low{% endif %}">
+                        {{ "%.1f"|format(agent.accuracy * 100) }}%
+                    </div>
+                </div>
+                <div class="agent-metric">
+                    <div class="m-label">Predictions</div>
+                    <div class="m-value mid">{{ agent.predictions_count }}</div>
+                </div>
+                <div class="agent-metric">
+                    <div class="m-label">Last Seen</div>
+                    <div class="m-value mid" style="font-size:11px;">{{ agent.last_prediction | ago }}</div>
+                </div>
+            </div>
+            <div class="weight-bar-wrap">
+                <span class="weight-bar-label">Weight</span>
+                <div class="weight-bar">
+                    <div class="weight-bar-fill" style="width:{{ (agent.weight * 1000) | round }}%;"></div>
+                </div>
+                <span class="weight-bar-value">{{ "%.4f"|format(agent.weight) }}</span>
+            </div>
+            <div class="agent-signal">
+                <span class="s-label">Signal</span>
+                <span class="signal-pill {{ agent.current_signal }}">{{ agent.current_signal }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/agents.js"></script>
+{% endblock %}

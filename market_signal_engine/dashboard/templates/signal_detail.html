@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}MSE — Signal #{{ signal.id }}{% endblock %}
+{% block body_class %}page-signal-detail{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">&#x2190; Back to Dashboard</a>
+
+<!-- Signal hero -->
+<div class="signal-hero">
+    <div class="hero-direction {{ signal.direction }}">{{ signal.direction }}</div>
+    <div>
+        <div class="hero-asset">{{ signal.asset }}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+            Signal #{{ signal.id }} &middot; {{ signal.timestamp | ago }}
+        </div>
+    </div>
+    <div class="hero-meta">
+        <div class="hero-meta-item">Confidence <span>{{ "%.1f"|format(signal.confidence * 100) }}%</span></div>
+        <div class="hero-meta-item">Dispersion <span>{{ "%.3f"|format(signal.consensus_dispersion) }}</span></div>
+        <div class="hero-meta-item">Meta-Agent <span>{{ signal.meta_agent_version }}</span></div>
+        <div class="hero-meta-item">Timestamp <span>{{ signal.timestamp | ts_fmt }}</span></div>
+    </div>
+</div>
+
+<div class="widget-grid" style="margin-bottom:28px;">
+    <!-- Consensus bar widget -->
+    <div class="widget">
+        <div class="widget-header">Agent Consensus</div>
+        <div class="widget-body">
+            <div class="consensus-bar-wrap">
+                {% if bullish_pct > 0 %}
+                <div class="consensus-segment bullish" style="flex:{{ bullish_pct }};">
+                    {% if bullish_pct >= 15 %}{{ bullish_pct }}%{% endif %}
+                </div>
+                {% endif %}
+                {% if neutral_pct > 0 %}
+                <div class="consensus-segment neutral" style="flex:{{ neutral_pct }};">
+                    {% if neutral_pct >= 15 %}{{ neutral_pct }}%{% endif %}
+                </div>
+                {% endif %}
+                {% if bearish_pct > 0 %}
+                <div class="consensus-segment bearish" style="flex:{{ bearish_pct }};">
+                    {% if bearish_pct >= 15 %}{{ bearish_pct }}%{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="consensus-legend">
+                <div class="consensus-legend-item">
+                    <span class="legend-dot bullish"></span>
+                    Bullish <span class="legend-count">{{ bullish_count }}</span>
+                </div>
+                <div class="consensus-legend-item">
+                    <span class="legend-dot neutral"></span>
+                    Neutral <span class="legend-count">{{ neutral_count }}</span>
+                </div>
+                <div class="consensus-legend-item">
+                    <span class="legend-dot bearish"></span>
+                    Bearish <span class="legend-count">{{ bearish_count }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="dispersion-row">
+            <span class="dispersion-label">Dispersion Penalty</span>
+            <div class="dispersion-gauge">
+                <div class="dispersion-fill" style="width:{{ (signal.consensus_dispersion * 100) | round }}%;"></div>
+            </div>
+            <span class="dispersion-value" style="color:{% if signal.consensus_dispersion < 0.2 %}var(--signal-green){% elif signal.consensus_dispersion < 0.35 %}var(--amber){% else %}var(--alert-red){% endif %};">
+                {{ "%.1f"|format(signal.consensus_dispersion * 100) }}%
+            </span>
+        </div>
+    </div>
+
+    <!-- Summary widget -->
+    <div class="widget">
+        <div class="widget-header">Consensus Summary</div>
+        <div class="widget-body">
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+                <strong style="color:var(--text-primary);">{{ bullish_count }}/26 agents</strong> voted <span style="color:var(--bullish);">bullish</span>
+                on <strong style="color:var(--text-primary);">{{ signal.asset }}</strong>.
+                {% if bullish_count > bearish_count %}
+                The consensus leans <span style="color:var(--bullish);">bullish</span> with
+                {% elif bearish_count > bullish_count %}
+                The consensus leans <span style="color:var(--bearish);">bearish</span> with
+                {% else %}
+                The agent network is <span style="color:var(--neutral);">divided</span> with
+                {% endif %}
+                {{ "%.1f"|format(signal.confidence * 100) }}% confidence.
+            </p>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
+                Dispersion of {{ "%.1f"|format(signal.consensus_dispersion * 100) }}%
+                {% if signal.consensus_dispersion > 0.3 %}
+                indicates significant disagreement among agents. Confidence has been penalized.
+                {% elif signal.consensus_dispersion > 0.15 %}
+                indicates moderate divergence. A minor confidence penalty was applied.
+                {% else %}
+                indicates strong agreement across the agent network.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Per-agent votes table -->
+<div class="widget" style="margin-bottom:28px;">
+    <div class="widget-header">Per-Agent Vote Breakdown</div>
+    <div class="votes-table-wrap">
+        <table class="votes-table">
+            <thead>
+                <tr>
+                    <th>Agent</th>
+                    <th>Tier</th>
+                    <th>Category</th>
+                    <th>Vote</th>
+                    <th>Confidence</th>
+                    <th>Reasoning</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vote in votes %}
+                <tr>
+                    <td>
+                        <span class="vote-name">#{{ vote.agent_id }} {{ vote.agent_name }}</span>
+                    </td>
+                    <td><span class="vote-category">T{{ vote.tier }}</span></td>
+                    <td><span class="vote-category">{{ vote.category }}</span></td>
+                    <td>
+                        <span class="signal-pill {{ vote.vote }}">{{ vote.vote }}</span>
+                    </td>
+                    <td>
+                        <span style="font-family:var(--font-mono);font-size:11px;color:{% if vote.confidence >= 0.75 %}var(--signal-green){% elif vote.confidence >= 0.6 %}var(--plasma){% else %}var(--text-muted){% endif %};">
+                            {{ "%.1f"|format(vote.confidence * 100) }}%
+                        </span>
+                    </td>
+                    <td>
+                        <span class="vote-reasoning">{{ vote.reasoning }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/signal_detail.js"></script>
+{% endblock %}

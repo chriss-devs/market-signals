@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}MSE — Dashboard{% endblock %}
+{% block body_class %}page-dashboard{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1 class="page-title"><span class="accent">&#x25C8;</span> Market Signal Engine</h1>
+        <p class="page-subtitle">26-agent consensus engine &middot; Crypto + Global Stocks</p>
+    </div>
+    <div class="header-stats">
+        <div class="header-stat">
+            <div class="value plasma">{{ stats.active_agents }}</div>
+            <div class="label">Agents Active</div>
+        </div>
+        <div class="header-stat">
+            <div class="value green">{{ "%.1f"|format(stats.avg_accuracy * 100) }}%</div>
+            <div class="label">Avg Accuracy</div>
+        </div>
+        <div class="header-stat">
+            <div class="value">{{ stats.signals_today }}</div>
+            <div class="label">Signals Today</div>
+        </div>
+    </div>
+</header>
+
+<!-- Stats row -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="card-label">Top Agent</div>
+        <div class="card-value" style="color: var(--plasma);">{{ stats.top_agent }}</div>
+        <div class="card-sub">{{ "%.1f"|format(stats.top_accuracy * 100) }}% accuracy</div>
+    </div>
+    <div class="stat-card">
+        <div class="card-label">Active / Total</div>
+        <div class="card-value">{{ stats.active_agents }}<span style="color:var(--text-dim);font-size:18px;"> / {{ stats.total_agents }}</span></div>
+        <div class="card-sub">Tier 1: 15 &middot; Tier 2: 7 &middot; Tier 3: 4</div>
+    </div>
+    <div class="stat-card">
+        <div class="card-label">Consensus Engine</div>
+        <div class="card-value" style="color: var(--signal-green);">Online</div>
+        <div class="card-sub">Meta-Agent v0.2.1 &middot; Weighted voting</div>
+    </div>
+    <div class="stat-card">
+        <div class="card-label">Feedback Loop</div>
+        <div class="card-value" style="color: var(--signal-green);">Active</div>
+        <div class="card-sub">EMA decay 0.9 &middot; Per-category weights</div>
+    </div>
+</div>
+
+<!-- Widget grid -->
+<div class="widget-grid">
+
+    <!-- Top agents widget -->
+    <div class="widget">
+        <div class="widget-header">
+            <span>Agent Performance</span>
+            <a href="/agents" style="color:var(--plasma);text-decoration:none;font-size:10px;">View All &#x2192;</a>
+        </div>
+        <div class="widget-body">
+            <div class="top-agents-strip">
+                {% for agent in agents[:8] %}
+                <a href="/agents" class="top-agent-mini">
+                    <div class="mini-name">
+                        <span class="agent-status {{ agent.status }}" style="display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>
+                        {{ agent.name }}
+                    </div>
+                    <div class="mini-acc">{{ "%.1f"|format(agent.accuracy * 100) }}%</div>
+                    <div class="mini-sub">{{ agent.predictions_count }} predictions</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent signals widget -->
+    <div class="widget">
+        <div class="widget-header">
+            <span>Recent Signals</span>
+        </div>
+        <div class="widget-body" style="padding: 0;">
+            {% if signals %}
+            {% for sig in signals[:5] %}
+            <a href="/signal/{{ sig.id }}" style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border-subtle);text-decoration:none;color:inherit;transition:background 0.15s ease;"
+               onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''">
+                <span class="signal-pill {{ sig.direction }}">{{ sig.direction }}</span>
+                <span style="font-family:var(--font-mono);font-weight:600;font-size:13px;flex:1;">{{ sig.asset }}</span>
+                <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">{{ "%.1f"|format(sig.confidence * 100) }}%</span>
+                <span style="font-size:10px;color:var(--text-dim);">{{ sig.timestamp | ago }}</span>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state"><div class="empty-text">No signals yet</div></div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

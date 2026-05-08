@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MSE — Market Signal Engine{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <div class="scanline"></div>
+    <div class="grid-overlay"></div>
+
+    <nav class="sidebar" id="sidebar">
+        <a href="/" class="sidebar-brand">
+            <span class="brand-icon">&#x25C8;</span>
+            <span class="brand-text">MSE</span>
+            <span class="brand-version">v0.2.1</span>
+        </a>
+
+        <div class="sidebar-section-label">Monitor</div>
+        <a href="/" class="sidebar-link {% if request.url.path == '/' %}active{% endif %}">
+            <span class="link-icon">&#x25A4;</span> Overview
+        </a>
+        <a href="/agents" class="sidebar-link {% if request.url.path == '/agents' %}active{% endif %}">
+            <span class="link-icon">&#x25B2;</span> Agents
+            <span class="link-badge">{{ (stats.active_agents if stats else 26)|default(26) }}/{{ (stats.total_agents if stats else 26)|default(26) }}</span>
+        </a>
+
+        <div class="sidebar-section-label">System</div>
+        <a href="/health" class="sidebar-link" target="_api">
+            <span class="link-icon">&#x25CB;</span> Health
+        </a>
+
+        <div class="sidebar-footer">
+            <div class="status-row">
+                <span class="status-dot active"></span>
+                <span>System Online</span>
+            </div>
+            <div class="status-row">
+                <span>Agents Active</span>
+                <span class="mono">{{ (stats.active_agents if stats else 26)|default(26) }}</span>
+            </div>
+            <div class="status-row">
+                <span>Avg Accuracy</span>
+                {% set acc = (stats.avg_accuracy if stats else 0.65)|default(0.65) %}
+                <span class="mono">{{ "%.1f"|format(acc * 100) }}%</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="/static/js/dashboard.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
