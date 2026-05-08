@@ -29,6 +29,57 @@
         }
     });
 
+    // ── Mobile sidebar toggle ──────────────────────────────────────────────
+    var hamburger = document.getElementById('hamburger');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        hamburger.classList.add('open');
+        overlay.classList.add('visible');
+        hamburger.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        hamburger.classList.remove('open');
+        overlay.classList.remove('visible');
+        hamburger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+    }
+
+    if (hamburger) {
+        hamburger.addEventListener('click', function () {
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', closeSidebar);
+    }
+
+    // Close sidebar on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar && sidebar.classList.contains('open')) {
+            closeSidebar();
+        }
+    });
+
+    // Close sidebar when a nav link is clicked (mobile)
+    document.querySelectorAll('.sidebar-link').forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (sidebar && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+    });
+
     // ── Health poll ─────────────────────────────────────────────────────────
     function pollHealth() {
         fetch('/health')
