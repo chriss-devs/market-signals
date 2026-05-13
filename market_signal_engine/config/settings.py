@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     telegram_chat_id: str = ""
     telegram_alerts_enabled: bool = False
 
+    # Chatbot / RAG
+    anthropic_api_key: str = ""
+
     # Scheduling (seconds)
     collector_interval: int = 300
     analysis_interval: int = 600

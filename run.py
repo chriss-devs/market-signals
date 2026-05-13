@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from market_signal_engine.dashboard.routes import router as dashboard_router
+from market_signal_engine.chatbot.routes import router as chatbot_router
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,7 @@ templates.env.filters["ago"] = ago
 app.state.templates = templates
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(dashboard_router)
+app.include_router(chatbot_router)
 
 def main() -> None:
     import uvicorn

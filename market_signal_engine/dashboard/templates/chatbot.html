@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Asistente RAG — MSE{% endblock %}
+
+{% block head %}
+<style>
+  .chatbot-panel { display: flex; flex-direction: column; gap: 0; height: calc(100vh - 80px); }
+  .cb-tabs { display: flex; border-bottom: 1px solid #1e2d3d; background: #060d14; }
+  .cb-tab {
+    padding: 12px 28px;
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #4a6fa5;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .cb-tab.active { color: #7eb3e0; border-bottom-color: #7eb3e0; }
+  .cb-tab:hover:not(.active) { color: #a0c4e8; }
+
+  .cb-section { display: none; flex: 1; overflow: hidden; }
+  .cb-section.active { display: flex; flex-direction: column; }
+
+  /* ── Chat section ── */
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .msg { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.bot  { align-self: flex-start; }
+  .msg-label { font-size: 0.7rem; color: #4a6fa5; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
+  .msg-bubble {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .msg-bubble { background: #112233; border: 1px solid #1e3a5f; color: #c8ddf0; }
+  .msg.bot  .msg-bubble { background: #0c1a26; border: 1px solid #1e2d3d; color: #a8c4d8; }
+  .msg.bot.error .msg-bubble { border-color: #5a1a1a; color: #e07070; }
+
+  .chat-input-row {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid #1e2d3d;
+    background: #060d14;
+  }
+  .chat-input {
+    flex: 1;
+    background: #0c1a26;
+    border: 1px solid #1e2d3d;
+    border-radius: 6px;
+    color: #c8ddf0;
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    resize: none;
+    height: 44px;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: #3a6fa5; }
+  .chat-input::placeholder { color: #2e4a62; }
+  .btn-send {
+    background: #1a3a5c;
+    border: 1px solid #2a5a8c;
+    color: #7eb3e0;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .btn-send:hover { background: #224a7a; }
+  .btn-send:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .typing-indicator { display: none; align-items: center; gap: 6px; padding: 0 24px 8px; }
+  .typing-indicator.visible { display: flex; }
+  .typing-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #4a6fa5;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
+
+  /* ── Documents section ── */
+  .docs-section-inner { padding: 24px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
+
+  .upload-zone {
+    border: 2px dashed #1e3a5f;
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    background: #080f18;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: #3a6fa5; }
+  .upload-zone input[type=file] { display: none; }
+  .upload-icon { font-size: 2rem; margin-bottom: 10px; color: #2e4a62; }
+  .upload-title { color: #7eb3e0; font-size: 0.95rem; margin-bottom: 4px; }
+  .upload-subtitle { color: #4a6fa5; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace; }
+  .upload-progress { display: none; margin-top: 12px; color: #4a6fa5; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; }
+  .upload-progress.visible { display: block; }
+
+  .doc-list-title { color: #4a6fa5; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+  .doc-list { display: flex; flex-direction: column; gap: 8px; }
+  .doc-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #0c1a26; border: 1px solid #1e2d3d; border-radius: 6px;
+    padding: 12px 16px;
+  }
+  .doc-icon { font-size: 1.1rem; color: #4a6fa5; flex-shrink: 0; }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-name { color: #a8c4d8; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-meta { color: #2e4a62; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .btn-delete {
+    background: none; border: 1px solid #3a1a1a; color: #8a4a4a;
+    border-radius: 4px; padding: 5px 10px; font-size: 0.75rem;
+    cursor: pointer; font-family: 'JetBrains Mono', monospace;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-delete:hover { background: #3a1a1a; color: #e07070; }
+
+  .empty-docs { color: #2e4a62; text-align: center; padding: 32px; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; }
+
+  .flash-msg {
+    padding: 10px 16px; border-radius: 6px; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace;
+    display: none;
+  }
+  .flash-msg.ok  { display: block; background: #0a1f0a; border: 1px solid #1a4a1a; color: #5aaa5a; }
+  .flash-msg.err { display: block; background: #1f0a0a; border: 1px solid #4a1a1a; color: #e07070; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chatbot-panel">
+
+  <!-- Tabs -->
+  <div class="cb-tabs">
+    <button class="cb-tab active" data-tab="chat">&#x25CF; Chatbot</button>
+    <button class="cb-tab" data-tab="docs">&#x25A4; Documentos</button>
+  </div>
+
+  <!-- ── CHAT SECTION ── -->
+  <div class="cb-section active" id="tab-chat">
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">
+        <span class="msg-label">ASISTENTE</span>
+        <div class="msg-bubble">
+          Hola. Soy tu asistente RAG. Puedo responder preguntas basándome únicamente en los documentos que hayas subido en la pestaña <strong>Documentos</strong>. Si no encuentro la información, te lo haré saber.
+        </div>
+      </div>
+    </div>
+
+    <div class="typing-indicator" id="typingIndicator">
+      <span class="msg-label">ASISTENTE</span>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+
+    <div class="chat-input-row">
+      <textarea
+        id="chatInput"
+        class="chat-input"
+        placeholder="Escribe tu pregunta aquí…"
+        rows="1"
+      ></textarea>
+      <button class="btn-send" id="sendBtn">Enviar</button>
+    </div>
+  </div>
+
+  <!-- ── DOCUMENTS SECTION ── -->
+  <div class="cb-section" id="tab-docs">
+    <div class="docs-section-inner">
+
+      <div id="flashMsg" class="flash-msg"></div>
+
+      <!-- Upload zone -->
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt">
+        <div class="upload-icon">&#x2912;</div>
+        <div class="upload-title">Arrastra un archivo o haz clic para seleccionar</div>
+        <div class="upload-subtitle">PDF · DOCX · TXT &nbsp;|&nbsp; máx. 20 MB</div>
+        <div class="upload-progress" id="uploadProgress">Procesando…</div>
+      </label>
+
+      <!-- Document list -->
+      <div>
+        <div class="doc-list-title">Documentos cargados</div>
+        <div class="doc-list" id="docList">
+          <div class="empty-docs" id="emptyDocs">No hay documentos cargados aún.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tab switching ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.cb-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cb-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.cb-section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'docs') loadDocs();
+  });
+});
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+const chatMessages = document.getElementById('chatMessages');
+const chatInput    = document.getElementById('chatInput');
+const sendBtn      = document.getElementById('sendBtn');
+const typing       = document.getElementById('typingIndicator');
+
+function appendMsg(role, text, isError = false) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role + (isError ? ' error' : '');
+  const label = document.createElement('span');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? 'TÚ' : 'ASISTENTE';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+  wrap.append(label, bubble);
+  chatMessages.appendChild(wrap);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendMessage() {
+  const question = chatInput.value.trim();
+  if (!question) return;
+
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  appendMsg('user', question);
+  typing.classList.add('visible');
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  try {
+    const res = await fetch('/chatbot/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error del servidor');
+    appendMsg('bot', data.answer);
+  } catch (err) {
+    appendMsg('bot', 'Error al contactar el servidor: ' + err.message, true);
+  } finally {
+    typing.classList.remove('visible');
+    sendBtn.disabled = false;
+    chatInput.focus();
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+});
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+const docList   = document.getElementById('docList');
+const emptyDocs = document.getElementById('emptyDocs');
+const flashMsg  = document.getElementById('flashMsg');
+
+function showFlash(msg, isError = false) {
+  flashMsg.textContent = msg;
+  flashMsg.className = 'flash-msg ' + (isError ? 'err' : 'ok');
+  setTimeout(() => { flashMsg.className = 'flash-msg'; }, 4000);
+}
+
+function typeIcon(ext) {
+  return ext === 'pdf' ? '📄' : ext === 'docx' || ext === 'doc' ? '📝' : '📃';
+}
+
+function renderDocs(docs) {
+  docList.innerHTML = '';
+  if (!docs.length) {
+    docList.appendChild(emptyDocs);
+    return;
+  }
+  docs.forEach(doc => {
+    const item = document.createElement('div');
+    item.className = 'doc-item';
+    const kb = doc.char_count ? Math.round(doc.char_count / 1024) + ' KB aprox.' : '';
+    const date = doc.created_at ? new Date(doc.created_at).toLocaleDateString('es-ES') : '';
+    item.innerHTML = `
+      <span class="doc-icon">${typeIcon(doc.file_type)}</span>
+      <div class="doc-info">
+        <div class="doc-name">${doc.filename}</div>
+        <div class="doc-meta">${doc.file_type.toUpperCase()} · ${kb} · ${date}</div>
+      </div>
+      <button class="btn-delete" data-id="${doc.id}">Eliminar</button>
+    `;
+    item.querySelector('.btn-delete').addEventListener('click', () => deleteDoc(doc.id));
+    docList.appendChild(item);
+  });
+}
+
+async function loadDocs() {
+  try {
+    const res  = await fetch('/chatbot/documents');
+    const docs = await res.json();
+    renderDocs(docs);
+  } catch { /* silent */ }
+}
+
+async function deleteDoc(id) {
+  if (!confirm('¿Eliminar este documento y sus datos del sistema?')) return;
+  try {
+    const res = await fetch(`/chatbot/documents/${id}`, { method: 'DELETE' });
+    if (res.ok) { showFlash('Documento eliminado.'); loadDocs(); }
+    else        { showFlash('No se pudo eliminar.', true); }
+  } catch { showFlash('Error de red.', true); }
+}
+
+// ── File upload ───────────────────────────────────────────────────────────────
+const uploadZone    = document.getElementById('uploadZone');
+const fileInput     = document.getElementById('fileInput');
+const uploadProgress = document.getElementById('uploadProgress');
+
+async function uploadFile(file) {
+  uploadProgress.classList.add('visible');
+  uploadProgress.textContent = `Subiendo "${file.name}"…`;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res  = await fetch('/chatbot/documents/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error del servidor');
+    showFlash(`✓ "${file.name}" cargado (${data.chunks} fragmentos).`);
+    loadDocs();
+  } catch (err) {
+    showFlash('Error: ' + err.message, true);
+  } finally {
+    uploadProgress.classList.remove('visible');
+    fileInput.value = '';
+  }
+}
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+});
+
+// Load docs when the page first opens on documents tab (if applicable)
+</script>
+{% endblock %}

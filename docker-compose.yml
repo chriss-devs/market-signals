@@ -20,7 +20,7 @@ services:
       start_period: 15s
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: market-signals-db
     restart: unless-stopped
     environment:

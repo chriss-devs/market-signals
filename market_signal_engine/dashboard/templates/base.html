@@ -35,6 +35,11 @@
             <span class="link-badge">{{ (stats.active_agents if stats else 26)|default(26) }}/{{ (stats.total_agents if stats else 26)|default(26) }}</span>
         </a>
 
+        <div class="sidebar-section-label">Asistente</div>
+        <a href="/chatbot" class="sidebar-link {% if '/chatbot' in request.url.path %}active{% endif %}">
+            <span class="link-icon">&#x25CF;</span> Chatbot RAG
+        </a>
+
         <div class="sidebar-section-label">System</div>
         <a href="/health" class="sidebar-link" target="_api">
             <span class="link-icon">&#x25CB;</span> Health
